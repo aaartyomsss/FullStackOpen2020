@@ -50,6 +50,29 @@ const ErrorNotification = ({ notification }) => {
   }
 }
 
+// Invalid length notification
+const InvalidLength = ({notification}) => {
+  const style = {
+    border: '3px solid red',
+    borderRadius: 5,
+    fontSize: 24,
+    color: 'green',
+    padding: 10,
+    margin: 10,
+
+  }
+  
+  if (notification === null) {
+    return null
+  } else {
+    return (
+      <div style={style}>
+        {notification}
+      </div>
+    )
+  }
+}
+
 
 // Deleting contact
 const deleteItem = (id, array, setPersons) => {
@@ -75,10 +98,10 @@ const DisplayList = ({ array, filter, setPersons }) => {
 
 
   if (filter === '') {
-    return array.map(person => <li key={person.id}>{person.name} {person.number} <button onClick={() => deleteItem(person.id, array, setPersons)}>delete</button></li>)
+    return array.map(person => <li key={person.id}>{person.name} {person.phone} <button onClick={() => deleteItem(person.id, array, setPersons)}>delete</button></li>)
   } else {
     const filtered = array.filter(person => person.name.toLowerCase().includes(filter.toLowerCase()))
-    return filtered.map(person => <li key={person.id}>{person.name} {person.number} <button onClick={() => deleteItem(person.id)}>delete</button></li>)
+    return filtered.map(person => <li key={person.id}>{person.name} {person.phone} <button onClick={() => deleteItem(person.id)}>delete</button></li>)
   }
 }
 
@@ -122,6 +145,7 @@ const App = () => {
   const [search, setSearch] = useState('')
   const [notification, setNotification] = useState(null)
   const [errorNotification, setErrorNotification] = useState(null)
+  const [lengthNotification, setLengthNotification] = useState(null)
 
 
   //Getting initial data
@@ -136,24 +160,31 @@ const App = () => {
   const addName = (event) => {
     event.preventDefault()
     let check = false
-
+    let lengthCheck = true
+    let numCheck = true
+    if (newName.trim().length < 3){
+      lengthCheck = false
+    }
+    if(newNumber.trim().length < 8) {
+      numCheck = false
+    }
     persons.forEach(person => {
       if (person.name === newName.trim()) {
         check = true
       }
     })
-    if (check === true) {
+    if (check && lengthCheck && numCheck) {
       let proceed = window.confirm(`${newName.trim()} is already added to phonebook, replace old number with the old one?`)
       if (proceed) {
         const person = persons.find(obj => obj.name === newName.trim())
         const urlId = person.id
-        const changedPerson = { ...person, number: newNumber }
+        const changedPerson = { ...person, phone: newNumber }
 
 
 
         nodeServices.updatePhone(urlId, changedPerson).then(response => {
           setPersons(persons.map(person => person.id !== urlId ? person : response.data))
-          setNotification(`Updated ${changedPerson.name} number to ${changedPerson.number}`)
+          setNotification(`Updated ${changedPerson.name} number to ${changedPerson.phone}`)
           setTimeout(() => {
             setNotification(null)
           }, 3000)
@@ -169,10 +200,10 @@ const App = () => {
         setNewName('')
 
       }
-    } else {
+    } else if (lengthCheck && numCheck) {
       const person = {
         name: newName.trim(),
-        number: newNumber,
+        phone: newNumber,
 
       }
 
@@ -192,6 +223,16 @@ const App = () => {
       setNewNumber('')
       setNewName('')
 
+    } else if (!lengthCheck) {
+      setLengthNotification(`Contact with name ${newName.trim()} has invalid length`)
+      setTimeout(() => {
+        setLengthNotification(null)
+      }, 3000)
+    } else if (!numCheck) {
+      setLengthNotification(`Contact with naem ${newName.trim()} has invalid number format`)
+      setTimeout(() => {
+        setLengthNotification(null)
+      }, 3000)
     }
   }
 
@@ -215,6 +256,7 @@ const App = () => {
       <h1>Phonebook</h1>
       <Notification notification={notification} />
       <ErrorNotification notification={errorNotification} />
+      <InvalidLength notification={lengthNotification}/>
       <Filter search={search} handleSearch={handleSearch} />
       <h2>Add a new</h2>
       <PersonForm newName={newName} handleInputChange={handleInputChange} addName={addName} newNumber={newNumber} handleNumberChange={handleNumberChange} />
